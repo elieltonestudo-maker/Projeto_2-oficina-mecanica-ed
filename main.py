@@ -50,12 +50,8 @@ def menu():
             os_atual = oficina.os_abertas.get(os_num)
             
             if os_atual:
-                # Para simular, vamos puxar a queixa de um dos carros iniciais baseado no cliente
-                queixa_teste = ""
-                if os_atual.cliente == "Elielton": queixa_teste = "Motor falhando e engasgando"
-                elif os_atual.cliente == "Gabriel": queixa_teste = "Barulho no freio"
-                elif os_atual.cliente == "Ana": queixa_teste = "Carro superaquecendo"
-                else: queixa_teste = "Problema não relatado"
+                # Puxa a queixa real da OS
+                queixa_teste = getattr(os_atual, 'queixa', "Problema não relatado")
 
                 from modelos.diagnostico import analisar_queixa
                 suspeitas = analisar_queixa(queixa_teste)
@@ -63,7 +59,7 @@ def menu():
                 print(f"\n--- ÁRVORE DE DIAGNÓSTICO (OS {os_num}) ---")
                 if suspeitas:
                     print(f"Queixa relatada: '{queixa_teste}'")
-                    print(f"Atenção: O sistema detectou suspeitas nos códigos {suspeitas}")
+                    print(f"{Cores.AMARELO}Atenção: O sistema detectou suspeitas nos códigos {suspeitas}{Cores.RESET}")
                 else:
                     print("Nenhuma suspeita detectada pela queixa.")
                     
@@ -85,10 +81,48 @@ def menu():
 
         elif opcao == "7":
             os_num = int(input("Número da OS: "))
-            forma = input("Forma de Pagamento (PIX/Cartao/Dinheiro): ")
-            parcelas = 1
-            if forma.lower() == "cartao":
-                parcelas = int(input("Quantidade de parcelas: "))
+            
+            # Busca a OS para exibir os dados
+            os_atual = oficina.os_abertas.get(os_num)
+            if not os_atual:
+                print("OS não encontrada.")
+                continue
+                
+            if os_atual.status != "Aguardando Pagamento":
+                print("A OS ainda não foi liberada pelo mecânico.")
+                continue
+
+            # Exibe o resumo da OS para conferência
+            print(f"\n{Cores.NEGRITO}--- RESUMO DA OS {os_num} ---{Cores.RESET}")
+            print(f"Cliente: {os_atual.cliente}")
+            print(f"Placa: {os_atual.placa}")
+            print(f"Mecânico: {os_atual.mecanico}")
+            
+            # Calcula o total prévio
+            valor_pecas = sum([p['qtd'] * 150.0 for p in os_atual.pecas])
+            valor_mao_obra = sum([s['valor'] for s in os_atual.servicos])
+            print(f"Total a Pagar: R$ {valor_pecas + valor_mao_obra:.2f}")
+            print(f"{Cores.NEGRITO}------------------------{Cores.RESET}")
+            
+            print("\n--- FORMA DE PAGAMENTO ---")
+            print("1. PIX")
+            print("2. Cartão de Crédito/Débito")
+            print("3. Dinheiro")
+            escolha_pgto = input("Escolha a forma de pagamento (1-3): ")
+            
+            if escolha_pgto == "1":
+                forma = "PIX"
+                parcelas = 1
+            elif escolha_pgto == "2":
+                forma = "Cartão"
+                parcelas = int(input("Quantidade de parcelas (1 para à vista): "))
+            elif escolha_pgto == "3":
+                forma = "Dinheiro"
+                parcelas = 1
+            else:
+                print("Opção de pagamento inválida. Pagamento cancelado.")
+                continue 
+            
             oficina.fechar_os_e_pagar(os_num, forma, parcelas)
 
         elif opcao == "8":

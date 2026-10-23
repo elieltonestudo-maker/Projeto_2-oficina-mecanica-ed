@@ -3,6 +3,7 @@ from modelos.os import OrdemServico
 from modelos.diagnostico import criar_arvore_carro, analisar_queixa
 from datetime import datetime
 from estruturas.cores import Cores
+import random
 
 class Oficina:
     def __init__(self, banco_dados):
@@ -42,8 +43,15 @@ class Oficina:
                 if veiculo:
                     num_os = self.proximo_numero_os
                     self.proximo_numero_os += 1
-                    nova_os = OrdemServico(num_os, veiculo["placa"], veiculo["cliente"], "Mecânico Padrão")
+                    
+                    # Sorteio do mecânico responsável
+                    mecanicos = ["João (Motor)", "Carlos (Suspensão)", "Ana (Elétrica)"]
+                    mec_responsavel = random.choice(mecanicos)
+                    
+                    # Criação da OS com o mecânico sorteado
+                    nova_os = OrdemServico(num_os, veiculo["placa"], veiculo["cliente"], mec_responsavel)
                     nova_os.queixa = veiculo["queixa"]
+                    
                     self.os_abertas[num_os] = nova_os
                     box["status"] = "Ocupado"
                     box["os"] = num_os
@@ -51,6 +59,7 @@ class Oficina:
                     print(f"\n{Cores.AZUL}--- BOX {num_box} LIBERADO ---{Cores.RESET}")
                     print(f"Chamando veículo {Cores.NEGRITO}{veiculo['placa']}{Cores.RESET} (Cliente: {veiculo['cliente']}) para o Box {num_box}.")
                     print(f"OS {num_os} aberta. Queixa: {veiculo['queixa']}")
+                    print(f"Mecânico responsável: {Cores.CIANO}{mec_responsavel}{Cores.RESET}")
                     
                     pecas_suspeitas = analisar_queixa(veiculo["queixa"])
                     if pecas_suspeitas:
