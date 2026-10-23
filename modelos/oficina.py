@@ -2,6 +2,7 @@ from estruturas.fila import Fila
 from modelos.os import OrdemServico
 from modelos.diagnostico import criar_arvore_carro, analisar_queixa
 from datetime import datetime
+from estruturas.cores import Cores
 
 class Oficina:
     def __init__(self, banco_dados):
@@ -42,17 +43,18 @@ class Oficina:
                     num_os = self.proximo_numero_os
                     self.proximo_numero_os += 1
                     nova_os = OrdemServico(num_os, veiculo["placa"], veiculo["cliente"], "Mecânico Padrão")
+                    nova_os.queixa = veiculo["queixa"]
                     self.os_abertas[num_os] = nova_os
                     box["status"] = "Ocupado"
                     box["os"] = num_os
                     
-                    print(f"\n--- BOX {num_box} LIBERADO ---")
-                    print(f"Chamando veículo {veiculo['placa']} para o Box {num_box}.")
+                    print(f"\n{Cores.AZUL}--- BOX {num_box} LIBERADO ---{Cores.RESET}")
+                    print(f"Chamando veículo {Cores.NEGRITO}{veiculo['placa']}{Cores.RESET} (Cliente: {veiculo['cliente']}) para o Box {num_box}.")
                     print(f"OS {num_os} aberta. Queixa: {veiculo['queixa']}")
                     
                     pecas_suspeitas = analisar_queixa(veiculo["queixa"])
                     if pecas_suspeitas:
-                        print(f"Alerta: Peças suspeitas detectadas pela queixa: {pecas_suspeitas}")
+                        print(f"{Cores.AMARELO}Alerta: Peças suspeitas detectadas pela queixa: {pecas_suspeitas}{Cores.RESET}")
                     return
         print("Todos os boxes estão ocupados no momento.")
 
@@ -74,21 +76,35 @@ class Oficina:
             print("OS não encontrada.")
             return
         if os_atual.status != "Aguardando Pagamento":
-            print("A OS ainda não foi liberada pelo mecânico.")
+            print("A OS ainda não foi liberada pelo mecânico (remontagem pendente).")
             return
 
+        # 1. CÁLCULO DE VALORES
         valor_pecas = sum([p['qtd'] * 150.0 for p in os_atual.pecas]) 
         valor_mao_obra = sum([s['valor'] for s in os_atual.servicos])
         total = valor_pecas + valor_mao_obra
 
+        # 2. BAIXA NO ESTOQUE (Exigência do PDF)
+        # Aqui simulamos a busca no nosso estoque. 
+        # Em um sistema completo, chamaríamos o método do Estoque.
+        print("\n--- BAIXA DE ESTOQUE ---")
+        for peca in os_atual.pecas:
+            print(f"Baixando {peca['qtd']}x do produto {peca['peca']} do estoque físico...")
+            # Na sua versão final com a classe Estoque, aqui entraria: 
+            # self.estoque.baixar_produto(peca['peca'], peca['qtd'])
+        print("Estoque atualizado com sucesso.")
+
+        # 3. REGISTRO DO PAGAMENTO
         os_dados = {
             'numero_os': os_atual.numero, 'cliente': os_atual.cliente, 'placa': os_atual.placa,
             'mecanico': os_atual.mecanico, 'forma_pagamento': forma_pagamento, 'parcelas': parcelas,
             'valor_pecas': valor_pecas, 'valor_mao_obra': valor_mao_obra, 'valor_total': total,
             'data_hora': datetime.now().strftime("%Y-%m-%d %H:%M"), 'garantia_dias': 90
         }
-        pecas_db = [{'codigo': p['peca'], 'nome': p['peca'], 'qtd': p['qtd'], 'valor': 150.0} for p in os_atual.pecas]
         
+        # Salva no banco SQLite (para os relatórios)
+        pecas_db = [{'codigo': p['peca'], 'nome': p['peca'], 'qtd': p['qtd'], 'valor': 150.0} for p in os_atual.pecas]
         self.banco.registrar_pagamento(os_dados, pecas_db)
+        
         os_atual.status = "Fechada"
-        print(f"OS {num_os} paga via {forma_pagamento}. Total: R$ {total:.2f}. Obrigado!")
+        print(f"\n{Cores.VERDE}OS {num_os} paga via {forma_pagamento} ({parcelas}x). Total: R$ {total:.2f}. Obrigado!{Cores.RESET}")

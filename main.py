@@ -1,5 +1,6 @@
 from banco.conexao import BancoDados
 from modelos.oficina import Oficina
+from estruturas.cores import Cores
 
 def carregar_dados_iniciais(oficina):
     print("Carregando dados iniciais de teste...")
@@ -14,9 +15,9 @@ def menu():
     carregar_dados_iniciais(oficina)
 
     while True:
-        print("="*40)
-        print("   SISTEMA DE OFICINA MECÂNICA   ")
-        print("="*40)
+        print(f"{Cores.CIANO}========================================{Cores.RESET}")
+        print(f"{Cores.CIANO}{Cores.NEGRITO}   SISTEMA DE OFICINA MECÂNICA   {Cores.RESET}")
+        print(f"{Cores.CIANO}========================================{Cores.RESET}")
         print("1. Registrar Chegada (Normal)")
         print("2. Registrar Chegada (Guincho)")
         print("3. Chamar Próximo para o Box")
@@ -45,9 +46,31 @@ def menu():
             oficina.liberar_box(box)
 
         elif opcao == "5":
-            print("\n--- ÁRVORE DE DIAGNÓSTICO ---")
-            oficina.arvore_diagnostico.percorrer_pre_ordem()
-            print("-----------------------------\n")
+            os_num = int(input("Digite o número da OS que deseja ver o diagnóstico: "))
+            os_atual = oficina.os_abertas.get(os_num)
+            
+            if os_atual:
+                # Para simular, vamos puxar a queixa de um dos carros iniciais baseado no cliente
+                queixa_teste = ""
+                if os_atual.cliente == "Elielton": queixa_teste = "Motor falhando e engasgando"
+                elif os_atual.cliente == "Gabriel": queixa_teste = "Barulho no freio"
+                elif os_atual.cliente == "Ana": queixa_teste = "Carro superaquecendo"
+                else: queixa_teste = "Problema não relatado"
+
+                from modelos.diagnostico import analisar_queixa
+                suspeitas = analisar_queixa(queixa_teste)
+                
+                print(f"\n--- ÁRVORE DE DIAGNÓSTICO (OS {os_num}) ---")
+                if suspeitas:
+                    print(f"Queixa relatada: '{queixa_teste}'")
+                    print(f"Atenção: O sistema detectou suspeitas nos códigos {suspeitas}")
+                else:
+                    print("Nenhuma suspeita detectada pela queixa.")
+                    
+                oficina.arvore_diagnostico.percorrer_pre_ordem(pecas_suspeitas=suspeitas)
+                print("-----------------------------\n")
+            else:
+                print("OS não encontrada.")
 
         elif opcao == "6":
             os_num = int(input("Número da OS: "))
