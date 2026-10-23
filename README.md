@@ -46,3 +46,18 @@ Conforme exigido no edital, o projeto implementa combinações de estruturas de 
 
 ## 💾 Banco de Dados SQLite
 O sistema utiliza a biblioteca nativa `sqlite3` para persistir os pagamentos e as peças usadas. Isso permite a geração de relatórios gerenciais (Ticket Médio, Faturamento, Método de Pagamento mais usado, Ranking de Peças).
+
+## 🎨 Interface Visual no Terminal (Cores ANSI)
+Foi criada uma classe utilitária chamada `Cores` (no arquivo `estruturas/cores.py`) que utiliza códigos de escape ANSI nativos do Python.
+*   **Justificativa:** O sistema é executado inteiramente via terminal (CLI). Para melhorar a usabilidade e a experiência do mecânico/atendente, as informações foram categorizadas por cores:
+    *   **Azul:** Cabeçalhos e abertura de Boxes.
+    *   **Amarelo:** Alertas de peças suspeitas na árvore de diagnóstico (baseado na queixa do cliente).
+    *   **Verde:** Confirmações de sucesso (peças com estado OK, pagamentos concluídos).
+    *   **Vermelho:** Mensagens de erro (não implementado visualmente em todas as telas, mas previsto na classe).
+    *   **Ciano:** Destaques de nomes de mecânicos e do título do sistema.
+
+## 🧠 Diagnóstico Inteligente (Queixa do Cliente x Árvore)
+O sistema vai além de apenas imprimir a árvore de componentes. No momento em que o veículo chega, o atendente registra a queixa relatada (ex: "barulho no freio").
+*   O método `analisar_queixa()` (em `modelos/diagnostico.py`) varre essa queixa em busca de palavras-chave mapeadas no dicionário `SINTOMAS`.
+*   Quando a árvore é exibida na tela (Opção 5 do menu), as peças que correspondem aos sintomas relatados são automaticamente destacadas com um alerta visual em amarelo: `[SUSPEITA PELA QUEIXA]`.
+*   **Vantagem:** Isso simula a triagem real de uma oficina, guiando o mecânico para os componentes mais prováveis antes mesmo de abrir o capô do carro.
