@@ -1,0 +1,2 @@
+# Nenhuma biblioteca externa necessária. 
+# O projeto utiliza apenas a biblioteca nativa sqlite3 do Python.
