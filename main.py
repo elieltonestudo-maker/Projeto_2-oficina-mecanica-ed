@@ -1,6 +1,8 @@
 from banco.conexao import BancoDados
 from modelos.oficina import Oficina
 from estruturas.cores import Cores
+from modelos.estoque import Estoque
+from datetime import datetime
 
 def carregar_dados_iniciais(oficina):
     print("Carregando dados iniciais de teste...")
@@ -12,6 +14,24 @@ def carregar_dados_iniciais(oficina):
 def menu():
     db = BancoDados()
     oficina = Oficina(db)
+    
+    # Inicializa o Estoque
+    estoque = Estoque(db)
+    
+    # --- POPULANDO O BANCO PARA TESTE (Só roda se o banco estiver vazio) ---
+    if not estoque.produtos:
+        db.cadastrar_produto("O001", "Óleo Motor 5W30", "Fluido", 50.0, 10)
+        hoje = datetime.now().strftime("%Y-%m-%d")
+        db.adicionar_lote("O001", 5, 30.0, hoje, "2026-11-15") # Perto de vencer
+        db.adicionar_lote("O001", 5, 30.0, hoje, "2025-01-01") # Já venceu
+        
+        db.cadastrar_produto("P001", "Vela de Ignição", "Peça", 150.0, 4)
+        db.adicionar_lote("P001", 2, 80.0, hoje, None) # Estoque baixo (2 < 4)
+
+    # Carrega do banco para a memória e checa alertas automaticamente
+    estoque.carregar_do_banco()
+    estoque.verificar_alertas()
+    
     carregar_dados_iniciais(oficina)
 
     while True:
@@ -26,8 +46,10 @@ def menu():
         print("6. Adicionar Peça na OS")
         print("7. Fechar OS e Pagar")
         print("8. Relatórios Gerenciais (SQL)")
+        print("9. Gestão de Estoque e Compras")
+        print("10. Ver Peças em Teste (No Carro)")
         print("0. Sair")
-        print("="*40)
+        print(f"{Cores.CIANO}========================================{Cores.RESET}")
         
         opcao = input("Escolha uma opção: ")
 
@@ -50,7 +72,6 @@ def menu():
             os_atual = oficina.os_abertas.get(os_num)
             
             if os_atual:
-                # Puxa a queixa real da OS
                 queixa_teste = getattr(os_atual, 'queixa', "Problema não relatado")
 
                 from modelos.diagnostico import analisar_queixa
@@ -72,33 +93,44 @@ def menu():
             os_num = int(input("Número da OS: "))
             os_atual = oficina.os_abertas.get(os_num)
             if os_atual:
-                codigo = input("Código da peça (ex: P001): ").upper()
+                codigo_input = input("Código da peça (ex: P001 ou 001): ").upper()
+                
+                # Formata o código automaticamente
+                if not codigo_input.startswith("P"):
+                    codigo_formatado = "P" + codigo_input.zfill(3)
+                else:
+                    codigo_formatado = codigo_input
+
                 qtd = int(input("Quantidade: "))
-                os_atual.adicionar_peca(codigo, qtd)
-                print(f"Peça {codigo} (x{qtd}) adicionada à OS {os_num}.")
+                
+                # Chama a função do Estoque 
+                sucesso, mensagem = estoque.enviar_para_teste(codigo_formatado, qtd, os_num)
+                
+                if sucesso:
+                    os_atual.adicionar_peca(codigo_formatado, qtd)
+                    print(f"{Cores.VERDE}{mensagem}{Cores.RESET}")
+                    # Mostra o painel do estoque de teste
+                    estoque.ver_teste() 
+                else:
+                    print(f"{Cores.VERMELHO}Erro: {mensagem}{Cores.RESET}")
             else:
                 print("OS não encontrada.")
 
         elif opcao == "7":
             os_num = int(input("Número da OS: "))
-            
-            # Busca a OS para exibir os dados
             os_atual = oficina.os_abertas.get(os_num)
             if not os_atual:
                 print("OS não encontrada.")
                 continue
-                
             if os_atual.status != "Aguardando Pagamento":
                 print("A OS ainda não foi liberada pelo mecânico.")
                 continue
 
-            # Exibe o resumo da OS para conferência
             print(f"\n{Cores.NEGRITO}--- RESUMO DA OS {os_num} ---{Cores.RESET}")
             print(f"Cliente: {os_atual.cliente}")
             print(f"Placa: {os_atual.placa}")
             print(f"Mecânico: {os_atual.mecanico}")
             
-            # Calcula o total prévio
             valor_pecas = sum([p['qtd'] * 150.0 for p in os_atual.pecas])
             valor_mao_obra = sum([s['valor'] for s in os_atual.servicos])
             print(f"Total a Pagar: R$ {valor_pecas + valor_mao_obra:.2f}")
@@ -120,16 +152,21 @@ def menu():
                 forma = "Dinheiro"
                 parcelas = 1
             else:
-                print("Opção de pagamento inválida. Pagamento cancelado.")
+                print(f"{Cores.VERMELHO}Opção inválida.{Cores.RESET}")
                 continue 
             
+            # 1. Registra o pagamento
             oficina.fechar_os_e_pagar(os_num, forma, parcelas)
+            
+            # 2. NOVO TRECHO: Remove as peças da lista de teste
+            estoque.em_teste = [item for item in estoque.em_teste if item["os"] != os_num]
+            print(f"{Cores.VERDE}Peças da OS {os_num} removidas do estoque de teste (aprovadas).{Cores.RESET}")
 
         elif opcao == "8":
             print("\n--- RELATÓRIOS GERENCIAIS ---")
             mais_usado = db.relatorio_metodo_mais_usado()
             if mais_usado:
-                print(f"Método mais usado: {mais_usado[0]} ({mais_usado[1]} vezes)")
+                print(f"Método mais usado: {Cores.VERDE}{mais_usado[0]}{Cores.RESET} ({mais_usado[1]} vezes)")
             else:
                 print("Nenhum pagamento registrado ainda.")
                 
@@ -141,12 +178,73 @@ def menu():
                 print(f" - {peca}: {qtd} unidades")
             print("-----------------------------\n")
 
+        elif opcao == "9":
+            print("\n--- GESTÃO DE ESTOQUE ---")
+            print("1. Cadastrar Novo Produto")
+            print("2. Repor Estoque (Adicionar Lote)")
+            print("3. Relatório de Estoque Mínimo/Promoções")
+            print("4. Relatório de Perdas")
+            sub_opcao = input("Escolha: ")
+            
+            if sub_opcao == "1":
+                cod = input("Código: ").upper()
+                nome = input("Nome: ")
+                cat = input("Categoria (Peça/Fluido): ")
+                preco = float(input("Preço de Venda: R$ "))
+                min_qtd = int(input("Estoque Mínimo: "))
+                if db.cadastrar_produto(cod, nome, cat, preco, min_qtd):
+                    print(f"{Cores.VERDE}Produto cadastrado!{Cores.RESET}")
+                    estoque.carregar_do_banco()
+                else:
+                    print(f"{Cores.VERMELHO}Código já existe.{Cores.RESET}")
+                    
+            elif sub_opcao == "2":
+                cod_input = input("Código do Produto: ").upper()
+                
+                # Padroniza o código
+                if not cod_input.startswith("P"):
+                    cod = "P" + cod_input.zfill(3)
+                else:
+                    cod = cod_input
+
+                # Verifica se o produto existe ANTES de pedir os dados do lote
+                if cod in estoque.produtos:
+                    produto = estoque.produtos[cod]
+                    print(f"{Cores.VERDE}Produto encontrado: {produto.nome} | Estoque Atual: {produto.quantidade_total()} unidades.{Cores.RESET}")
+                    
+                    qtd = int(input("Quantidade a adicionar no Lote: "))
+                    preco_compra = float(input("Preço de Compra Unitário: R$ "))
+                    validade = input("Data de Validade (AAAA-MM-DD) ou ENTER para nenhuma: ")
+                    if validade == "": validade = None
+                    
+                    hoje = datetime.now().strftime("%Y-%m-%d")
+                    if db.adicionar_lote(cod, qtd, preco_compra, hoje, validade):
+                        print(f"{Cores.VERDE}Lote adicionado ao produto {cod}! Novo estoque: {produto.quantidade_total() + qtd}{Cores.RESET}")
+                        estoque.carregar_do_banco() # Recarrega a memória
+                else:
+                    print(f"{Cores.VERMELHO}Produto não cadastrado no sistema!{Cores.RESET}")
+                    
+            elif sub_opcao == "3":
+                estoque.verificar_alertas()
+                
+            elif sub_opcao == "4":
+                db.cursor.execute("SELECT produto_nome, SUM(quantidade), SUM(prejuizo_financeiro) FROM perdas GROUP BY produto_nome")
+                perdas = db.cursor.fetchall()
+                print(f"\n{Cores.NEGRITO}--- RELATÓRIO DE PERDAS ---{Cores.RESET}")
+                if not perdas:
+                    print("Nenhuma perda registrada.")
+                for p in perdas:
+                    print(f"Produto: {p[0]} | Qtd Perdida: {p[1]} | Prejuízo: R$ {p[2]:.2f}")
+
+        elif opcao == "10":
+            estoque.ver_teste()
+
         elif opcao == "0":
             print("Encerrando o sistema...")
             db.fechar_conexao()
             break
         else:
-            print("Opção inválida!")
+            print(f"{Cores.VERMELHO}Opção inválida!{Cores.RESET}")
 
 if __name__ == "__main__":
     menu()
