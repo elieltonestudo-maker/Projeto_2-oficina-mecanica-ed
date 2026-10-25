@@ -71,8 +71,14 @@ def criar_arvore_carro():
 
 
 SINTOMAS = {
-    "falhando": ["P001", "P002", "P012"], "engasgando": ["P001", "P002", "P024"],
-    "não pega": ["P001", "P010", "P021", "P023"], "perda de força": ["P001", "P022", "P023"],
+    "falhando": ["P001", "P002", "P012"], 
+    "engasgando": ["P001", "P002", "P024"],
+    "não pega": ["P001", "P010", "P021", "P023"], 
+    "nao pega": ["P001", "P010", "P021", "P023"],
+    "não liga": ["P001", "P002", "P010", "P021", "P023"], # <--- NOVO AQUI
+    "nao liga": ["P001", "P002", "P010", "P021", "P023"], # <--- NOVO AQUI
+    "bateria": ["P010", "P011"], # <--- NOVO AQUI
+    "perda de força": ["P001", "P022", "P023"],
     "cheiro de gasolina": ["P001", "P022", "P024"], "assobio": ["P003"], "correia": ["P003"],
     "superaquecendo": ["P008", "P009", "P013"], "fervendo": ["P008", "P009", "P013"],
     "água baixando": ["P008", "P009"], "fumando": ["P008", "P013"],

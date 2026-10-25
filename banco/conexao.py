@@ -71,6 +71,16 @@ class BancoDados:
                 preco_unitario REAL
             )
         """)
+
+        # 6. Tabela de Serviços (Tabela de Preços)
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS servicos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                codigo TEXT UNIQUE,
+                descricao TEXT,
+                preco_mao_obra REAL
+            )
+        """)
         
         self.conexao.commit()
 
@@ -84,7 +94,7 @@ class BancoDados:
             self.conexao.commit()
             return True
         except sqlite3.IntegrityError:
-            return False # Produto já existe
+            return False 
 
     def adicionar_lote(self, codigo_produto, quantidade, preco_compra, data_compra, data_validade):
         self.cursor.execute("SELECT id FROM produtos WHERE codigo = ?", (codigo_produto,))
@@ -107,7 +117,6 @@ class BancoDados:
         self.conexao.commit()
 
     def buscar_produtos_estoque_baixo(self):
-        # Soma a quantidade de todos os lotes e compara com o estoque_minimo
         self.cursor.execute("""
             SELECT p.nome, p.estoque_minimo, COALESCE(SUM(l.quantidade), 0) as qtd_atual
             FROM produtos p
@@ -119,7 +128,6 @@ class BancoDados:
 
     # --- MÉTODOS DE PAGAMENTO E RELATÓRIOS ---
     def registrar_pagamento(self, os_dados, itens_utilizados):
-        # Salva a OS
         self.cursor.execute("""
             INSERT INTO ordens_servico (numero_os, cliente, placa, mecanico, forma_pagamento, 
                                         parcelas, valor_total, data_hora, garantia_dias)
@@ -128,7 +136,6 @@ class BancoDados:
               os_dados['forma_pagamento'], os_dados['parcelas'], os_dados['valor_total'], 
               os_dados['data_hora'], os_dados['garantia_dias']))
         
-        # Salva os itens
         for item in itens_utilizados:
             self.cursor.execute("""
                 INSERT INTO itens_os (numero_os, produto_nome, quantidade, preco_unitario)
@@ -155,5 +162,32 @@ class BancoDados:
         self.cursor.execute("SELECT produto_nome, SUM(quantidade) as total FROM itens_os GROUP BY produto_nome ORDER BY total DESC LIMIT 5")
         return self.cursor.fetchall()
         
+    def relatorio_mecanicos(self):
+        self.cursor.execute("""
+            SELECT mecanico, COUNT(numero_os) as qtd_os, SUM(valor_total) as total_faturado
+            FROM ordens_servico
+            GROUP BY mecanico
+            ORDER BY total_faturado DESC
+        """)
+        return self.cursor.fetchall()
+
+    def popular_servicos_iniciais(self):
+        # Verifica se a tabela está vazia
+        self.cursor.execute("SELECT COUNT(*) FROM servicos")
+        if self.cursor.fetchone()[0] == 0:
+            servicos = [
+                ("S001", "Troca de Óleo", 50.0),
+                ("S002", "Alinhamento e Balanceamento", 120.0),
+                ("S003", "Troca de Pastilhas de Freio", 80.0),
+                ("S004", "Desmontagem e Montagem de Motor", 2500.0),
+                ("S005", "Diagnóstico Eletrônico", 150.0)
+            ]
+            self.cursor.executemany("INSERT INTO servicos (codigo, descricao, preco_mao_obra) VALUES (?, ?, ?)", servicos)
+            self.conexao.commit()
+
+    def buscar_servicos(self):
+        self.cursor.execute("SELECT codigo, descricao, preco_mao_obra FROM servicos")
+        return self.cursor.fetchall()
+
     def fechar_conexao(self):
         self.conexao.close()

@@ -1,9 +1,9 @@
+import random
 from estruturas.fila import Fila
 from modelos.os import OrdemServico
 from modelos.diagnostico import criar_arvore_carro, analisar_queixa
 from datetime import datetime
 from estruturas.cores import Cores
-import random
 
 class Oficina:
     def __init__(self, banco_dados):
@@ -22,14 +22,15 @@ class Oficina:
         self.os_abertas = {} 
         self.proximo_numero_os = 1000
 
-    def registrar_chegada(self, placa, cliente, queixa, guincho=False):
-        dados = {"placa": placa, "cliente": cliente, "queixa": queixa}
+    def registrar_chegada(self, placa, cliente, modelo, queixa, guincho=False):
+        # Agora o dicionário guarda o modelo do carro
+        dados = {"placa": placa, "cliente": cliente, "modelo": modelo, "queixa": queixa}
         if guincho:
             self.fila_guincho.enfileirar(dados)
-            print(f"Veículo {placa} (GUINCHO) na fila prioritária.")
+            print(f"Veículo {placa} ({modelo}) - GUINCHO na fila prioritária.")
         else:
             self.fila_normal.enfileirar(dados)
-            print(f"Veículo {placa} na fila normal.")
+            print(f"Veículo {placa} ({modelo}) na fila normal.")
 
     def chamar_proximo(self):
         for num_box, box in self.boxes.items():
@@ -48,8 +49,9 @@ class Oficina:
                     mecanicos = ["João (Motor)", "Carlos (Suspensão)", "Ana (Elétrica)"]
                     mec_responsavel = random.choice(mecanicos)
                     
-                    # Criação da OS com o mecânico sorteado
+                    # Criação da OS
                     nova_os = OrdemServico(num_os, veiculo["placa"], veiculo["cliente"], mec_responsavel)
+                    nova_os.modelo_carro = veiculo.get("modelo", "Não informado") # <--- NOVO AQUI
                     nova_os.queixa = veiculo["queixa"]
                     
                     self.os_abertas[num_os] = nova_os
@@ -57,13 +59,9 @@ class Oficina:
                     box["os"] = num_os
                     
                     print(f"\n{Cores.AZUL}--- BOX {num_box} LIBERADO ---{Cores.RESET}")
-                    print(f"Chamando veículo {Cores.NEGRITO}{veiculo['placa']}{Cores.RESET} (Cliente: {veiculo['cliente']}) para o Box {num_box}.")
+                    print(f"Chamando veículo {Cores.NEGRITO}{veiculo['placa']}{Cores.RESET} ({veiculo['modelo']}) (Cliente: {veiculo['cliente']}) para o Box {num_box}.")
                     print(f"OS {num_os} aberta. Queixa: {veiculo['queixa']}")
                     print(f"Mecânico responsável: {Cores.CIANO}{mec_responsavel}{Cores.RESET}")
-                    
-                    pecas_suspeitas = analisar_queixa(veiculo["queixa"])
-                    if pecas_suspeitas:
-                        print(f"{Cores.AMARELO}Alerta: Peças suspeitas detectadas pela queixa: {pecas_suspeitas}{Cores.RESET}")
                     return
         print("Todos os boxes estão ocupados no momento.")
 
@@ -82,18 +80,15 @@ class Oficina:
     def fechar_os_e_pagar(self, num_os, forma_pagamento, parcelas=1):
         os_atual = self.os_abertas.get(num_os)
         
-        # Cálculo de valores
         valor_pecas = sum([p['qtd'] * 150.0 for p in os_atual.pecas]) 
         valor_mao_obra = sum([s['valor'] for s in os_atual.servicos])
         total = valor_pecas + valor_mao_obra
 
-        # 1. BAIXA DE ESTOQUE (Simulação visual)
         print("\n--- BAIXA DE ESTOQUE ---")
         for peca in os_atual.pecas:
             print(f"Baixando {peca['qtd']}x do produto {peca['peca']} do estoque físico...")
         print("Estoque atualizado com sucesso.")
 
-        # 2. REGISTRO DO PAGAMENTO (Novo formato do Banco de Dados)
         os_dados = {
             'numero_os': os_atual.numero, 
             'cliente': os_atual.cliente, 
@@ -106,10 +101,8 @@ class Oficina:
             'garantia_dias': 90
         }
         
-        # Prepara a lista de itens no formato que o banco espera
         itens_utilizados = [{'nome': p['peca'], 'qtd': p['qtd'], 'valor': 150.0} for p in os_atual.pecas]
         
-        # Chama o método do banco atualizado
         self.banco.registrar_pagamento(os_dados, itens_utilizados)
         
         os_atual.status = "Fechada"

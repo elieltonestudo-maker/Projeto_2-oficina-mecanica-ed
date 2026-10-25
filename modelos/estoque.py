@@ -78,5 +78,6 @@ class Estoque:
             
         print(f"\n{Cores.CIANO}--- PEÇAS EM TESTE (NO CARRO) ---{Cores.RESET}")
         for item in self.em_teste:
-            print(f"OS {item['os']} | {item['quantidade']}x {item['produto']} (Cód: {item['codigo']})")
+            # Formato: 2x P004 - Pastilha Dianteira (OS 1001)
+            print(f"{Cores.NEGRITO}{item['quantidade']}x {item['codigo']} - {item['produto']}{Cores.RESET} (OS {item['os']})")
         print(f"{Cores.CIANO}----------------------------------{Cores.RESET}")
