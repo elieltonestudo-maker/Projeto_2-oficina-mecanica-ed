@@ -32,9 +32,9 @@ O sistema já inicia com 2 veículos nos boxes (Elielton e Gabriel) e 2 na fila 
 1. **Verificar a Fila e os Boxes:**
    Digite `15` (Painel de Controle). Veja quem está na fila e nos boxes.
 2. **Chamar os carros da fila:**
-   Digite `3` duas vezes. O Fusca vai para o Box 2 (OS 1002) e a Ana para o Box 3 (OS 1003).
+   Digite `3` duas vezes. O **Fusca (Jaime Barbosa)** vai para o Box 2 (OS 1002) e a **Hilux (Ana)** para o Box 3 (OS 1003).
 3. **Ver o Diagnóstico Inteligente:**
-   Digite `4` e insira a OS `1002` (Fusca). Veja a árvore apontar as peças de ignição suspeitas pela queixa "Não Liga".
+   Digite `4` e insira a OS `1002` (Fusca do Jaime). Veja a árvore apontar as peças de ignição suspeitas pela queixa "Não Liga".
 4. **Adicionar Peças e Mão de Obra:**
    Digite `5` (OS `1002`, código `P001`, qtd `2`).
    Digite `6` (OS `1002`, código `S004`).
