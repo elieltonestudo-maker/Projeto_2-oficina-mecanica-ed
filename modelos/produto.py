@@ -51,3 +51,16 @@ class Produto:
                 perdas += lote.quantidade
                 lote.quantidade = 0 # Zera o lote para não ser usado
         return perdas
+
+    # --- MÉTODO NOVO AQUI ---
+    def calcular_preco_com_desconto(self, qtd):
+        # Lógica: Se o lote mais antigo estiver perto de vencer, aplica 20% de desconto
+        if self.fila_lotes:
+            lote_mais_antigo = self.fila_lotes[0]
+            if lote_mais_antigo.perto_de_vencer():
+                valor_original = self.preco_venda * qtd
+                valor_desconto = valor_original * 0.20
+                return valor_original - valor_desconto, True 
+        
+        valor_original = self.preco_venda * qtd
+        return valor_original, False

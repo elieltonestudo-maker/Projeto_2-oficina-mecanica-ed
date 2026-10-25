@@ -77,12 +77,19 @@ class Oficina:
         else:
             print(f"Box {num_box} já está livre ou não existe.")
 
-    def fechar_os_e_pagar(self, num_os, forma_pagamento, parcelas=1):
+    def fechar_os_e_pagar(self, num_os, forma_pagamento, parcelas=1, valor_total_calculado=0):
         os_atual = self.os_abertas.get(num_os)
         
-        valor_pecas = sum([p['qtd'] * 150.0 for p in os_atual.pecas]) 
-        valor_mao_obra = sum([s['valor'] for s in os_atual.servicos])
-        total = valor_pecas + valor_mao_obra
+        # Se o valor total foi passado pelo main (já com desconto), usamos ele
+        if valor_total_calculado > 0:
+            total = valor_total_calculado
+            valor_mao_obra = sum([s['valor'] for s in os_atual.servicos])
+            valor_pecas = total - valor_mao_obra
+        else:
+            # Fallback: cálculo antigo caso não seja passado o valor
+            valor_pecas = sum([p['qtd'] * 150.0 for p in os_atual.pecas]) 
+            valor_mao_obra = sum([s['valor'] for s in os_atual.servicos])
+            total = valor_pecas + valor_mao_obra
 
         print("\n--- BAIXA DE ESTOQUE ---")
         for peca in os_atual.pecas:
@@ -101,6 +108,8 @@ class Oficina:
             'garantia_dias': 90
         }
         
+        # Aqui mantemos o valor base de 150.0 para o relatório de peças, 
+        # mas o valor_total da OS já reflete o desconto.
         itens_utilizados = [{'nome': p['peca'], 'qtd': p['qtd'], 'valor': 150.0} for p in os_atual.pecas]
         
         self.banco.registrar_pagamento(os_dados, itens_utilizados)

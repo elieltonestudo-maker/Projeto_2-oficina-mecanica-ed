@@ -281,16 +281,29 @@ def menu():
             print(f"Cliente: {os_atual.cliente} | Carro: {os_atual.placa} ({modelo})")
             
             print(f"\n{Cores.NEGRITO}Peças:{Cores.RESET}")
+            valor_pecas = 0
             for p in os_atual.pecas:
-                nome_peca = estoque.produtos[p['peca']].nome if p['peca'] in estoque.produtos else p['peca']
-                print(f"  - {p['qtd']}x {nome_peca}")
+                cod = p['peca']
+                qtd = p['qtd']
+                nome_peca = estoque.produtos[cod].nome if cod in estoque.produtos else cod
+                
+                if cod in estoque.produtos:
+                    valor_peca, tem_desconto = estoque.produtos[cod].calcular_preco_com_desconto(qtd)
+                    if tem_desconto:
+                        print(f"  - {qtd}x {nome_peca} (R$ {estoque.produtos[cod].preco_venda:.2f}) -> {Cores.MAGENTA}[DESCONTO 20% APLICADO] R$ {valor_peca:.2f}{Cores.RESET}")
+                    else:
+                        print(f"  - {qtd}x {nome_peca}: R$ {valor_peca:.2f}")
+                else:
+                    valor_peca = qtd * 150.0
+                    print(f"  - {qtd}x {nome_peca}: R$ {valor_peca:.2f}")
+                valor_pecas += valor_peca
                 
             print(f"\n{Cores.NEGRITO}Serviços:{Cores.RESET}")
+            valor_mao_obra = 0
             for s in os_atual.servicos:
                 print(f"  - {s['descricao']}: R$ {s['valor']:.2f}")
+                valor_mao_obra += s['valor']
                 
-            valor_pecas = sum([p['qtd'] * 150.0 for p in os_atual.pecas])
-            valor_mao_obra = sum([s['valor'] for s in os_atual.servicos])
             print(f"\n{Cores.NEGRITO}Total Estimado: R$ {valor_pecas + valor_mao_obra:.2f}{Cores.RESET}")
             
             os_atual.status = "Aguardando Aprovação"
@@ -394,16 +407,31 @@ def menu():
             print(f"Cliente: {os_atual.cliente} | Carro: {os_atual.placa} ({modelo}) | Mecânico: {os_atual.mecanico}")
             
             print(f"{Cores.NEGRITO}Peças:{Cores.RESET}")
+            valor_pecas = 0
             for p in os_atual.pecas:
-                nome_peca = estoque.produtos[p['peca']].nome if p['peca'] in estoque.produtos else p['peca']
-                print(f"  - {p['qtd']}x {nome_peca}")
+                cod = p['peca']
+                qtd = p['qtd']
+                nome_peca = estoque.produtos[cod].nome if cod in estoque.produtos else cod
+                
+                if cod in estoque.produtos:
+                    valor_peca, tem_desconto = estoque.produtos[cod].calcular_preco_com_desconto(qtd)
+                    if tem_desconto:
+                        print(f"  - {qtd}x {nome_peca} (R$ {estoque.produtos[cod].preco_venda:.2f}) -> {Cores.MAGENTA}[DESCONTO 20% APLICADO] R$ {valor_peca:.2f}{Cores.RESET}")
+                    else:
+                        print(f"  - {qtd}x {nome_peca}: R$ {valor_peca:.2f}")
+                else:
+                    valor_peca = qtd * 150.0
+                    print(f"  - {qtd}x {nome_peca}: R$ {valor_peca:.2f}")
+                valor_pecas += valor_peca
+                
             print(f"{Cores.NEGRITO}Mão de Obra:{Cores.RESET}")
+            valor_mao_obra = 0
             for s in os_atual.servicos:
                 print(f"  - {s['descricao']}: R$ {s['valor']:.2f}")
+                valor_mao_obra += s['valor']
             
-            valor_pecas = sum([p['qtd'] * 150.0 for p in os_atual.pecas])
-            valor_mao_obra = sum([s['valor'] for s in os_atual.servicos])
-            print(f"\n{Cores.NEGRITO}Total a Pagar: R$ {valor_pecas + valor_mao_obra:.2f}{Cores.RESET}")
+            total = valor_pecas + valor_mao_obra
+            print(f"\n{Cores.NEGRITO}Total a Pagar: R$ {total:.2f}{Cores.RESET}")
             
             print("\n--- FORMA DE PAGAMENTO ---")
             print("1. PIX\n2. Cartão\n3. Dinheiro")
@@ -423,7 +451,7 @@ def menu():
                 print(f"{Cores.VERMELHO}Opção inválida.{Cores.RESET}")
                 continue 
             
-            oficina.fechar_os_e_pagar(os_num, forma, parcelas)
+            oficina.fechar_os_e_pagar(os_num, forma, parcelas, total) # Passamos o total calculado
             estoque.em_teste = [item for item in estoque.em_teste if item["os"] != os_num]
             print(f"{Cores.VERDE}OS {os_num} paga. Peças removidas do estoque de teste.{Cores.RESET}")
 
