@@ -11,11 +11,19 @@ def carregar_dados_iniciais(oficina):
     oficina.registrar_chegada("XYZ-9876", "Elielton", "Corolla", "Motor falhando e engasgando", guincho=True)
     oficina.registrar_chegada("JKL-4321", "Jaime Barbosa", "Fusca", "Não Liga", guincho=False)
     oficina.registrar_chegada("DEF-5678", "Ana", "Hilux", "Carro superaquecendo", guincho=False)
+     # Guincho (Vão furar a fila normal e ir para os boxes 0 e 1 se estiverem livres)
+    oficina.registrar_chegada("GUI-1111", "Roberto", "BMW 320i", "Pane elétrica geral, não acende nada", guincho=True)
+    oficina.registrar_chegada("GUI-2222", "Fernanda", "Jeep Compass", "Vazamento forte de óleo no motor", guincho=True)
     
+    # Normais (Vão para o final da fila de espera)
+    oficina.registrar_chegada("NOR-3333", "Lucas", "Gol G5", "Suspensão batendo muito em buracos", guincho=False)
+    oficina.registrar_chegada("NOR-4444", "Mariana", "Onix", "Direção pesada e volante tremendo", guincho=False)
+    
+    # Chama os 2 primeiros (que serão os de guincho, pois têm prioridade)
     for _ in range(2):
         oficina.chamar_proximo()
     
-    print("Dados carregados com sucesso! (2 OSs abertas para teste)\n")
+    print("Dados carregados com sucesso! (2 OSs abertas e Fila populada)\n")
 
 def menu():
     db = BancoDados()
